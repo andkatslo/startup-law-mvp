@@ -1,351 +1,219 @@
-import { useState, useEffect } from "react";
-import {
-  ClerkProvider,
-  SignInButton,
-  UserButton,
-  useUser,
-  useClerk,
-} from "@clerk/clerk-react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import {
-  ArrowRight,
-  Server,
-  Cloud,
-  Code,
-  Layers,
-  GitBranch,
-} from "lucide-react";
+import { useState } from "react";
+import { SignedIn, SignedOut, SignInButton } from "@clerk/clerk-react";
+import { Navigation } from "./components/Navigation";
+import { DocumentUploadCenter } from "./components/DocumentUploadCenter";
+import { QueryInterface } from "./components/QueryInterface";
+import { Card, CardContent } from "./components/ui/card";
+import { FileText, Shield, Sparkles } from "lucide-react";
 import "./App.css";
-import { API_BASE_URL } from "./config";
 
-// Get Clerk publishable key from environment variable
-const clerkPubKey =
-  "pk_test_cHJlbWl1bS1oZXJyaW5nLTcxLmNsZXJrLmFjY291bnRzLmRldiQ";
-
-if (!clerkPubKey) {
-  throw new Error("Missing VITE_CLERK_PUBLISHABLE_KEY environment variable");
-}
-
-// Backend info interface
-interface BackendInfo {
+interface Category {
   name: string;
-  version: string;
-  stack: {
-    framework: string;
-    database: string;
-    deployment: string;
-  };
+  count: number;
+  status: "complete" | "analyzing" | "waiting";
+  description: string;
 }
 
-function LandingContent() {
-  const { isLoaded, isSignedIn, user } = useUser();
-  const clerk = useClerk();
-  const [backendInfo, setBackendInfo] = useState<BackendInfo | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    const fetchBackendInfo = async () => {
-      try {
-        setIsLoading(true);
-        const response = await fetch(`${API_BASE_URL}/api/info`);
-        const data = await response.json();
-        setBackendInfo(data);
-      } catch (error) {
-        console.error("Error fetching backend info:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchBackendInfo();
-  }, []);
-
-  // Fetch user profile when signed in to trigger user creation
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      if (!isSignedIn || !user) return;
-
-      try {
-        console.log("User info from Clerk:", {
-          id: user.id,
-          email: user.primaryEmailAddress?.emailAddress,
-          name: user.fullName || user.username,
-        });
-
-        const token = await clerk.session?.getToken();
-
-        if (!token) {
-          console.error("No token available");
-          return;
-        }
-
-        // Simple request with just the Authorization header
-        const response = await fetch(`${API_BASE_URL}/api/v1/users/me`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          console.log("User profile fetched successfully:", data);
-        } else {
-          console.error("Failed to fetch user profile:", response.status);
-        }
-      } catch (error) {
-        console.error("Error fetching user profile:", error);
-      }
-    };
-
-    if (isSignedIn && user) {
-      fetchUserProfile();
-    }
-  }, [isSignedIn, user, clerk.session]);
-
-  if (!isLoaded) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        Loading user...
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between py-4">
-          <div className="flex items-center gap-2">
-            <Layers className="h-6 w-6" />
-            <span className="font-bold text-lg">
-              Fullstack React, FastAPI, Postgres
-            </span>
-          </div>
-          <div className="flex items-center gap-4">
-            {isSignedIn ? (
-              <UserButton />
-            ) : (
-              <SignInButton mode="modal">
-                <Button>Sign In</Button>
-              </SignInButton>
-            )}
-          </div>
-        </div>
-      </header>
-
-      <main>
-        {/* Hero section */}
-        <section className="container py-24 space-y-8 md:space-y-16">
-          <div className="flex flex-col items-center text-center space-y-4">
-            <Badge className="my-6">Production Ready</Badge>
-            <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl">
-              Fullstack AWS Template
-            </h1>
-            <p className="max-w-[700px] text-muted-foreground md:text-xl/relaxed">
-              A modern, scalable template for building web applications with
-              React, FastAPI, and AWS.
-            </p>
-            <div className="flex flex-wrap items-center justify-center gap-4 mt-8">
-              <Button size="lg" className="gap-1">
-                Get Started <ArrowRight className="h-4 w-4" />
-              </Button>
-              <Button size="lg" variant="outline">
-                Documentation
-              </Button>
-            </div>
-          </div>
-        </section>
-
-        {/* Features section */}
-        <section className="container py-16 space-y-16">
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 my-4">
-            <Card>
-              <CardHeader>
-                <Code className="h-6 w-6 mb-2 text-primary" />
-                <CardTitle>Frontend Stack</CardTitle>
-                <CardDescription>
-                  Modern, responsive UI with the latest React
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline">React 19</Badge>
-                  <Badge variant="outline">TypeScript</Badge>
-                  <Badge variant="outline">Vite</Badge>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Built with shadcn/ui components, Clerk Authentication, and
-                  Tailwind CSS.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <Server className="h-6 w-6 mb-2 text-primary" />
-                <CardTitle>Backend Stack</CardTitle>
-                <CardDescription>Powerful API with Python</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {isLoading ? (
-                  <p className="text-sm text-muted-foreground">
-                    Loading backend info...
-                  </p>
-                ) : backendInfo ? (
-                  <>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline">
-                        {backendInfo.stack.framework}
-                      </Badge>
-                      <Badge variant="outline">
-                        {backendInfo.stack.database}
-                      </Badge>
-                      <Badge variant="outline">Python 3.11</Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Fast, async API endpoints with comprehensive
-                      documentation.
-                    </p>
-                  </>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Could not connect to backend
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <Cloud className="h-6 w-6 mb-2 text-primary" />
-                <CardTitle>Deployment</CardTitle>
-                <CardDescription>Cloud-ready infrastructure</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline">Docker</Badge>
-                  <Badge variant="outline">AWS</Badge>
-                  <Badge variant="outline">CI/CD</Badge>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Containerized setup with infrastructure as code and automated
-                  deployment pipelines.
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        </section>
-
-        {/* Welcome section for authenticated users */}
-        {isSignedIn && (
-          <section className="container py-16">
-            <Card className="my-4 border-primary/20 bg-primary/5">
-              <CardHeader>
-                <CardTitle className="text-xl ">
-                  Welcome, {user.firstName || user.username}!
-                </CardTitle>
-                <CardDescription>
-                  You're now authenticated with Clerk
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-4">
-                  <Avatar className="h-16 w-16">
-                    <AvatarImage
-                      src={user.imageUrl}
-                      alt={user.username || ""}
-                    />
-                    <AvatarFallback>
-                      {user.firstName?.charAt(0) || user.username?.charAt(0)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="font-medium">
-                      {user.fullName || user.username}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {user.primaryEmailAddress?.emailAddress}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </section>
-        )}
-
-        {/* Getting started section */}
-        <section className="container py-16 space-y-8">
-          <div className="flex flex-col items-center gap-4 text-center my-8">
-            <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl">
-              Getting Started
-            </h2>
-            <p className="max-w-[700px] text-muted-foreground md:text-lg/relaxed">
-              This template includes Docker setup for both development and
-              production environments.
-            </p>
-          </div>
-          <Card className="my-4">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <GitBranch className="h-5 w-5" />
-                Development Workflow
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Check the README for detailed instructions on deployment and
-                customization. This template is designed to get you up and
-                running quickly with best practices.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <Button variant="outline" size="sm">
-                  View Documentation
-                </Button>
-                <Button variant="outline" size="sm">
-                  GitHub Repository
-                </Button>
-                <Button variant="outline" size="sm">
-                  Report Issues
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </section>
-      </main>
-
-      <footer className="border-t py-6 md:py-8">
-        <div className="container flex flex-col items-center justify-center gap-4 md:flex-row md:justify-between">
-          <div className="flex items-center gap-2">
-            <Layers className="h-5 w-5" />
-            <p className="text-center text-sm leading-loose text-muted-foreground md:text-left">
-              Fullstack Template - Created with React, FastAPI, and AWS
-            </p>
-          </div>
-          <div className="flex gap-4">
-            <Button variant="ghost" size="icon">
-              <GitBranch className="h-4 w-4" />
-              <span className="sr-only">GitHub</span>
-            </Button>
-          </div>
-        </div>
-      </footer>
-    </div>
-  );
+interface Document {
+  id: string;
+  name: string;
+  category: string;
+  size: string;
+  type: string;
+  uploadDate: string;
+  confidence: number;
+  status: "organized" | "processing";
 }
 
 function App() {
+  const [currentView, setCurrentView] = useState<"upload" | "query">("upload");
+  const [documents, setDocuments] = useState<Document[]>([]);
+
+  const [categories, setCategories] = useState<Category[]>([
+    {
+      name: "Formation",
+      count: 0,
+      status: "waiting",
+      description: "Articles of incorporation, bylaws, and founding documents",
+    },
+    {
+      name: "Governance",
+      count: 0,
+      status: "waiting",
+      description:
+        "Board resolutions, meeting minutes, and governance policies",
+    },
+    {
+      name: "Directors & Officers",
+      count: 0,
+      status: "waiting",
+      description:
+        "D&O insurance, indemnification agreements, and officer appointments",
+    },
+    {
+      name: "Cap Table",
+      count: 0,
+      status: "waiting",
+      description:
+        "Stock certificates, option grants, and equity documentation",
+    },
+    {
+      name: "Employees",
+      count: 0,
+      status: "waiting",
+      description: "Employment agreements, offer letters, and HR policies",
+    },
+    {
+      name: "Intellectual Property",
+      count: 0,
+      status: "waiting",
+      description: "Patents, trademarks, copyrights, and IP assignments",
+    },
+    {
+      name: "Compliance",
+      count: 0,
+      status: "waiting",
+      description: "Regulatory filings, licenses, and compliance documentation",
+    },
+  ]);
+
+  const handleDocumentUpload = (files: FileList) => {
+    // Simulate document processing
+    Array.from(files).forEach((file, index) => {
+      const newDoc = {
+        id: Date.now().toString() + index,
+        name: file.name,
+        category: "Processing...",
+        size: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
+        type: file.type.includes("pdf") ? "PDF" : "DOC",
+        uploadDate: "Just now",
+        confidence: 0,
+        status: "processing" as const,
+      };
+
+      setDocuments((prev) => [newDoc, ...prev]);
+
+      // Simulate AI processing
+      setTimeout(() => {
+        const availableCategories = [
+          "Formation",
+          "Governance",
+          "Cap Table",
+          "Intellectual Property",
+        ];
+        const finalCategory =
+          availableCategories[
+            Math.floor(Math.random() * availableCategories.length)
+          ];
+
+        setDocuments((prev) =>
+          prev.map((doc) =>
+            doc.id === newDoc.id
+              ? {
+                  ...doc,
+                  category: finalCategory,
+                  confidence: Math.floor(Math.random() * 10) + 90,
+                  status: "organized" as const,
+                }
+              : doc
+          )
+        );
+
+        // Update category count
+        setCategories((prev) =>
+          prev.map((cat) =>
+            cat.name === finalCategory
+              ? { ...cat, count: cat.count + 1, status: "complete" }
+              : cat
+          )
+        );
+      }, 2000 + index * 1000);
+    });
+  };
+
+  const totalDocuments = documents.filter(
+    (doc) => doc.status === "organized"
+  ).length;
+
   return (
-    <ClerkProvider publishableKey={clerkPubKey}>
-      <LandingContent />
-    </ClerkProvider>
+    <div className="min-h-screen bg-gray-50">
+      <SignedOut>
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+          <div className="max-w-md w-full space-y-8 p-8">
+            <div className="text-center">
+              <div className="flex justify-center mb-4">
+                <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center">
+                  <FileText className="h-8 w-8 text-white" />
+                </div>
+              </div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                LegalDocs AI
+              </h1>
+              <p className="text-gray-600 mb-8">
+                Intelligent legal document management for startups
+              </p>
+
+              <Card className="border-0 shadow-lg">
+                <CardContent className="p-8">
+                  <div className="space-y-6">
+                    <div className="text-center">
+                      <Sparkles className="h-12 w-12 text-blue-600 mx-auto mb-4" />
+                      <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                        Welcome to LegalDocs AI
+                      </h2>
+                      <p className="text-gray-600 mb-6">
+                        Sign in to start organizing your legal documents with
+                        AI-powered analysis and intelligent categorization.
+                      </p>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3 text-sm text-gray-600">
+                        <Shield className="h-4 w-4 text-green-500" />
+                        <span>Enterprise-grade security</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-sm text-gray-600">
+                        <FileText className="h-4 w-4 text-blue-500" />
+                        <span>AI-powered categorization</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-sm text-gray-600">
+                        <Sparkles className="h-4 w-4 text-purple-500" />
+                        <span>Intelligent document queries</span>
+                      </div>
+                    </div>
+
+                    <SignInButton mode="modal">
+                      <button className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-sm">
+                        Sign In to Continue
+                      </button>
+                    </SignInButton>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </SignedOut>
+
+      <SignedIn>
+        <Navigation
+          currentView={currentView}
+          onViewChange={setCurrentView}
+          documentCount={totalDocuments}
+        />
+
+        {/* Main Content */}
+        <main className="py-8 px-4 sm:px-6 lg:px-8">
+          {currentView === "upload" && (
+            <DocumentUploadCenter
+              onUpload={handleDocumentUpload}
+              categories={categories}
+            />
+          )}
+          {currentView === "query" && <QueryInterface documents={documents} />}
+        </main>
+      </SignedIn>
+    </div>
   );
 }
 
